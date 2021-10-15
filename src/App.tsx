@@ -1,33 +1,32 @@
 import React from 'react';
 import './App.css';
 import { Card, Grid, TextField, Typography } from '@mui/material';
-import { gql, DocumentNode } from '@apollo/client';
+import { gql } from '@apollo/client';
 import { removeLoc } from '@graphql-tools/optimize';
-import { ASTNode, visit } from 'graphql';
+import ReactJson from 'react-json-view'
 
+type State = 'valid' | 'invalid'
 
 function App() {
-  const [input, setInput] = React.useState("")
+  const [input, setInput] = React.useState("query {id}")
   const [hover, setHover] = React.useState("")
-  let output: string
-  let obj: {}
+  let output: object = {}
+  let state: State = 'invalid'
   try {
     output = formatInputAsAbstructSyntaxTree(input)
-    obj = JSON.parse(output)
+    state = 'valid'
   } catch (e) {
-    output = "invalid input"
-    obj = {}
+    state = 'invalid'
   }
   return (<>
-    <Grid container alignItems="center" spacing={2} margin={'auto'}>
+    <Grid container alignItems="center" spacing={4} margin={'auto'}>
       <Grid item>
-        <Card>
           <Typography>Get the Abstract Syntax Tree</Typography>
-          <TextField multiline={true} onChange={event => setInput(event.target.value)} >{input}</TextField>
-            <pre ><Typography >{output}</Typography></pre>
-          {process.env.NODE_ENV !== "production" && <><Typography>{input.split(' ').map(t => <><span /*display="inline"*/ onMouseLeave={() => setHover("")} onMouseOver={() => { console.log(t.replaceAll(/[{}:+-]/ig, "")); setHover(t.replaceAll(/[{}:+-]/ig, "")) }} >{t}</span><span /*display="inline"*/> </span></>)}</Typography>
-            <span>FORMAT AST {formatInputAsAbstructSyntaxTreeWithHighlightingHover(obj, hover)}</span></>
-          }
+        <Card>
+          <TextField fullWidth margin="normal" multiline={true} onChange={event => setInput(event.target.value)} value={input} >{input}</TextField>
+        </Card>
+        <Card>
+        {state === 'valid' ? <ReactJson  collapsed={false} src={output}></ReactJson> : <Typography>Invalid input</Typography>}
         </Card>
       </Grid>
     </Grid>
@@ -64,8 +63,18 @@ function valueContainsTarget(value: any, target: string): boolean {
   return false
 }
 
-function formatInputAsAbstructSyntaxTree(node: string): string {
-  return JSON.stringify(removeLoc(gql(node)), null, 2)
+function formatInputAsAbstructSyntaxTree(node: string) {
+  return removeLoc(gql(node))
+}
+
+function handleTab(e: any, setInput: any, input: any): any {
+  if (e.key === 'Tab' && !e.shiftKey) {
+    const target = e.target as HTMLInputElement;
+    e.preventDefault();
+    setInput(target?.selectionStart === undefined || target.selectionStart === null ? input + '\t' : input.slice(0,target.selectionStart) + '\t' +  input.slice(target.selectionStart))}
+    else {
+      return e
+    }
 }
 
 export default App;
